@@ -1,0 +1,7 @@
+sglang>=0.5.0
+torch>=2.0.0
+transformers>=4.40.0
+numpy
+aiohttp
+fastapi
+uvicorn
