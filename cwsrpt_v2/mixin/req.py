@@ -27,6 +27,8 @@ class ReqDllmMixin:
         self.dllm_confidence: float = 0.0  # mean confidence of current block
         self.dllm_n_masked: int = 0        # masked tokens remaining
         self.dllm_blocks_done: int = 0     # completed blocks count
+        self.dllm_wait_rounds: int = 0     # aging counter for starvation prevention
+        self.dllm_progress_ema: float = 2.0  # EMA of tokens unmasked per iteration
 
         if self.dllm_config is not None:
             if len(self.origin_input_ids) < self.dllm_config.block_size:

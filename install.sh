@@ -37,10 +37,13 @@ cp "$SGLANG_DLLM/mixin/scheduler.py" "$SGLANG_DLLM/mixin/scheduler.py.bak" 2>/de
 
 # Install CW-SRPT V2 algorithm
 echo "Installing CW-SRPT V2 algorithm..."
+# Install CW-SRPT V3/V2/V1 algorithms
+echo "Installing CW-SRPT algorithms (V3/V2/V1)..."
+cp cwsrpt_v2/algorithm/cw_srpt_v3.py "$SGLANG_DLLM/algorithm/"
 cp cwsrpt_v2/algorithm/cw_srpt_v2.py "$SGLANG_DLLM/algorithm/"
 cp cwsrpt_v2/algorithm/cw_srpt.py "$SGLANG_DLLM/algorithm/"
 
-# Install mixin patches (adds confidence fields + priority queue)
+# Install mixin patches (frontier state + frontier-aware admission + aging)
 echo "Installing scheduler patches..."
 cp cwsrpt_v2/mixin/req.py "$SGLANG_DLLM/mixin/"
 cp cwsrpt_v2/mixin/scheduler.py "$SGLANG_DLLM/mixin/"

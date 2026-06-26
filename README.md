@@ -1,41 +1,38 @@
-# dLLM-serve: CW-SRPT V2 — dLLM-Native Serving Optimizations
+# dLLM-serve: Frontier-Guided Forward-Pass Scheduling for Diffusion LLM Serving
 
-**P90 latency -68% | Throughput +64% | TPOT -51%** on SGLang with LLaDA2.0-mini (H100, TP=1/2/4).
+**P90 latency -82% | Throughput +104% | TPOT -47%** on SGLang with LLaDA2.0-mini (H100, TP=1/2/4).
 
-Three dLLM-specific optimizations for diffusion LLM online serving. Drop-in replacement for SGLang's default `LowConfidence` algorithm. Zero impact on AR model paths.
+Frontier-guided dLLM serving optimizations: **Admission → Execution → Termination**, each driven by the denoising frontier. Drop-in replacement for SGLang's default `LowConfidence` algorithm. Zero impact on AR model paths.
 
 ## Results (Real SGLang Online Serving)
 
+### CW-SRPT V3 vs LowConfidence
+
 | TP | Rate | TPS Improvement | P90 Latency Reduction |
 |----|------|----------------|----------------------|
-| 1 | 10/s | +59% | **-65%** |
-| 2 | 10/s | +44% | **-68%** |
-| 2 | 20/s | **+64%** | -57% |
-| 4 | 10/s | +26% | **-65%** |
-| 4 | 20/s | +53% | -53% |
+| 1 | 5/s | +9% | **-69%** |
+| 1 | 10/s | **+92%** | **-82%** |
+| 1 | 20/s | **+104%** | -67% |
+| 2 | 10/s | +45% | **-81%** |
+| 2 | 20/s | **+101%** | -73% |
+| 4 | 10/s | +27% | **-76%** |
+| 4 | 20/s | **+93%** | -76% |
 
-Single request TPOT: **3.3→1.7ms (TP=1)**, **2.6→1.3ms (TP=2)**, **2.1→1.1ms (TP=4)**
+Single request TPOT: **3.3→2.8ms (TP=1)**, **2.8→2.2ms (TP=2)**, **2.1→1.9ms (TP=4)**
 
-## Setup (5 minutes)
+Output quality: **32/32 readable** across HumanEval, GSM8K, MGSM, MT-Bench ✅
 
-### Prerequisites
+## Three-Pronged Architecture
 
-- NVIDIA GPU (H100/A100 recommended)
-- CUDA 12.x
-- Python 3.10+
-- SGLang (with dLLM support)
-- A dLLM model (e.g., [LLaDA2.0-mini](https://huggingface.co/inclusionAI/LLaDA2.0-mini))
+| Stage | Mechanism | Effect |
+|-------|-----------|--------|
+| **Admission** | Frontier-aware slot allocation with aging | P90/P99 tail latency reduction |
+| **Execution** | Adaptive denoising stride (target-based top-k) | Forward passes per block reduced |
+| **Termination** | Active-set early break + scheduler compaction | Batch slot utilization improvement → TPS doubled |
 
-### Step 1: Install SGLang
+## Quick Start
 
-```bash
-pip install "sglang[all]>=0.5.0"
-# Or from source:
-# git clone https://github.com/sgl-project/sglang.git
-# cd sglang && pip install -e "python[all]"
-```
-
-### Step 2: Install CW-SRPT V2
+### Step 1: Install
 
 ```bash
 git clone https://github.com/Ringssss/dLLM-serve.git
@@ -43,35 +40,22 @@ cd dLLM-serve
 bash install.sh
 ```
 
-The install script automatically:
-- Detects your SGLang installation
-- Backs up original files
-- Copies the CW-SRPT V2 algorithm + scheduler patches
-
-### Step 3: Verify
+### Step 2: Launch
 
 ```bash
-python -c "from sglang.srt.dllm.algorithm.cw_srpt_v2 import CW_SRPT_V2; print('✅ CW-SRPT V2 installed')"
-```
-
-## Usage
-
-### Launch Server
-
-```bash
-# CW-SRPT V2 (our method)
+# V3 (recommended — latest three-pronged architecture)
 python -m sglang.launch_server \
     --model-path inclusionAI/LLaDA2.0-mini \
-    --dllm-algorithm CW_SRPT_V2 \
+    --dllm-algorithm CW_SRPT_V3 \
     --max-running-requests 8 \
     --disable-radix-cache \
     --trust-remote-code \
     --port 30100
 
-# With TP=2
+# TP=2
 CUDA_VISIBLE_DEVICES=0,1 python -m sglang.launch_server \
     --model-path inclusionAI/LLaDA2.0-mini \
-    --dllm-algorithm CW_SRPT_V2 \
+    --dllm-algorithm CW_SRPT_V3 \
     --max-running-requests 8 \
     --disable-radix-cache \
     --trust-remote-code \
@@ -79,33 +63,37 @@ CUDA_VISIBLE_DEVICES=0,1 python -m sglang.launch_server \
     --tp-size 2
 ```
 
-### Send Requests
+### Step 3: Send Requests
 
 ```bash
 curl -X POST http://localhost:30100/v1/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "inclusionAI/LLaDA2.0-mini",
-    "prompt": "<role>SYSTEM</role>detailed thinking off<|role_end|><role>HUMAN</role>Write a Python function that checks if a number is prime.<|role_end|><role>ASSISTANT</role>",
+    "prompt": "Write a Python function that checks if a number is prime.",
     "max_tokens": 128,
     "temperature": 0
   }'
 ```
 
-### Run Benchmark
+### Step 4: Benchmark
 
 ```bash
-# Compare LowConfidence (baseline) vs CW-SRPT V2
-bash scripts/bench.sh --tp 1 --reqs 64 --model /path/to/LLaDA2.0-mini
+# Quick benchmark
+python benchmarks/bench_v3.py --tp 1 --reqs 64 --rates 5,10,20
 
-# TP=2
-bash scripts/bench.sh --tp 2 --reqs 64
+# Full comparison: LowConfidence vs V2 vs V3
+python benchmarks/bench_v3.py --tp 1 --reqs 64 --rates 5,10,20 --algos LowConfidence,CW_SRPT_V2,CW_SRPT_V3
 
-# TP=4
-bash scripts/bench.sh --tp 4 --reqs 64
+# TP sweep
+python benchmarks/bench_v3.py --tp 2 --reqs 64
+python benchmarks/bench_v3.py --tp 4 --reqs 64
+
+# Quality check only
+python benchmarks/bench_v3.py --quality-only --algos CW_SRPT_V3
 ```
 
-### Restore Original (Uninstall)
+### Uninstall
 
 ```bash
 bash scripts/uninstall.sh
@@ -113,106 +101,121 @@ bash scripts/uninstall.sh
 
 ## How It Works
 
-### Three Contributions
+### Contribution 1: Frontier-Aware Admission (`scheduler.py`)
 
-**1. Fused Adaptive Threshold** (`cwsrpt_v2/algorithm/cw_srpt_v2.py`)
+Replaces FIFO request admission with frontier-score-based slot allocation:
 
-Standard dLLM uses fixed threshold (e.g., 0.95) for unmasking tokens. We make it adaptive:
-- High mean confidence → lower threshold → unmask more tokens per iteration
-- Minimum 2 tokens unmasked per iteration (not just 1)
-- Stall decay: stuck blocks get progressively more aggressive
-
-This cuts forward passes per block from ~15 to ~8, reducing TPOT by ~50%.
-
-**2. Vectorized Block Processing** (`cwsrpt_v2/algorithm/cw_srpt_v2.py`)
-
-Replace Python per-block for-loop with single vectorized PyTorch operation:
 ```python
-# Before (LowConfidence): O(batch_size) Python iterations
-for batch_id in range(batch_size):
-    # per-block threshold logic...
-
-# After (CW-SRPT V2): O(1) vectorized
-logits_view = full_logits.view(batch_size, block_size, -1)
-x0 = logits_view.argmax(dim=-1)  # all blocks at once
+score = remaining_work / (1 + aging_factor * wait_rounds)
 ```
 
-**3. CW-SRPT Priority Queue** (`cwsrpt_v2/mixin/scheduler.py`)
+Requests close to completion get priority. Aging prevents starvation.
 
-The scheduler sorts decode requests by confidence-weighted remaining work:
+### Contribution 2: Adaptive Denoising Stride (`cw_srpt_v3.py`)
+
+Instead of fixed threshold ("unmask everything above 0.95"), computes a target stride:
+
 ```python
-priority = n_masked * (1 - mean_confidence)
+stride = ceil(n_masked / remaining_iters)  # "how many tokens should I unmask?"
 ```
-Requests close to completion (high confidence, few masked tokens) run first, finishing faster and freeing batch slots for waiting requests.
 
-### Why dLLM-Only?
+Easy blocks take larger strides; stalled blocks get a minimum progress guarantee.
 
-These optimizations exploit properties unique to diffusion LLMs:
-- **Per-token confidence**: AR LLMs don't have confidence at masked positions
-- **Block structure**: Fixed 32-token blocks enable vectorized processing
-- **Free preemption**: dLLM state is ~2KB (masked tokens), not ~100MB (KV cache)
+### Contribution 3: Active-Set Early Break (`cw_srpt_v3.py`)
 
-AR models are **not affected** — all changes are inside `dllm/` paths that only activate with `--dllm-algorithm`.
+When >50% of blocks in a batch are done, break early and return to scheduler. The scheduler compacts done blocks out and refills with new requests — true dLLM-native continuous batching.
+
+### Frontier Writeback (`scheduler.py`)
+
+After each batch result, the scheduler reads `n_masked` and `confidence` back from the completed forward pass and writes them to `Req` objects. This closes the algorithm→scheduler information loop.
+
+## Why dLLM-Only?
+
+| Property | AR LLM | dLLM |
+|----------|--------|------|
+| Per-token confidence | ❌ | ✅ — enables frontier-aware scheduling |
+| Preemption cost | ~100MB KV cache swap | **~2KB** mask state |
+| Execution control | Fixed (1 token/step) | **Adaptive stride** (1-16 tokens/step) |
+| Block structure | No | **Yes** — enables active-set compaction |
+
+All changes are inside `dllm/` paths. AR models are **not affected**.
 
 ## Repository Structure
 
 ```
 dLLM-serve/
-├── install.sh                          # One-command setup
-├── cwsrpt_v2/                          # Core: SGLang patches
+├── install.sh                              # One-command setup
+├── cwsrpt_v2/                              # Core: SGLang patches
 │   ├── algorithm/
-│   │   ├── cw_srpt_v2.py              # V2 algorithm (main contribution)
-│   │   └── cw_srpt.py                 # V1 algorithm
+│   │   ├── cw_srpt_v3.py                  # V3: stride + early break + writeback (LATEST)
+│   │   ├── cw_srpt_v2.py                  # V2: adaptive threshold + vectorized
+│   │   └── cw_srpt.py                     # V1: basic adaptive threshold
 │   └── mixin/
-│       ├── req.py                      # Confidence tracking fields
-│       └── scheduler.py                # CW-SRPT priority queue
-├── diffserve/                          # Standalone serving framework
-│   ├── engine.py                       # KV cache + adaptive threshold engine
-│   ├── scheduler.py                    # 5 scheduling policies
-│   ├── bench_comparison.py             # A/B benchmark
-│   └── ...
+│       ├── req.py                          # Frontier state fields + remaining_work
+│       └── scheduler.py                    # Frontier writeback + frontier admission + aging
+├── benchmarks/
+│   ├── bench_v3.py                         # Standard benchmark (TP sweep + quality)
+│   ├── diffserve_v2.py                     # Early experiment: continuous batching
+│   └── diffserve_v3.py                     # Early experiment: CW-SRPT prototype
+├── ppopp/                                  # Paper figures: bench + plot scripts
+│   ├── bench_fig9_100B*.py                 # Benchmark scripts for paper figures
+│   ├── bench_fig13_quality.py              # Quality evaluation
+│   ├── bench_100B_tp4.py                   # TP=4 100B benchmark
+│   ├── collect_fig*.py                     # Data collection
+│   ├── plot_fig*.py                        # Plotting scripts
+│   ├── fig*_raw_data.json                  # Raw data
+│   └── fig*.pdf / fig*.png                 # Generated figures
+├── diffserve/                              # Standalone serving framework
 ├── scripts/
-│   ├── bench.sh                        # Run full benchmark
-│   └── uninstall.sh                    # Restore originals
-├── benchmarks/                         # Experiment scripts
+│   ├── bench.sh                            # Shell benchmark wrapper
+│   └── uninstall.sh                        # Restore original SGLang
 ├── docs/
 │   ├── diffserve_confidence_aware_scheduling.md  # Full experiment log (12 experiments)
-│   └── DESIGN_SPECDIFF.md             # SpecDiff design doc
+│   ├── cwsrpt_v3_sglang_incremental_code.md      # Complete incremental code
+│   └── DESIGN_SPECDIFF.md                        # SpecDiff design doc
 └── README.md
 ```
 
-## Full Results Table
+## Full Results
 
 ### TP=1 (64 reqs, max_tokens=128, H100 80GB)
 
-| Rate | Metric | LowConfidence | CW-SRPT V2 | Delta |
+| Rate | Metric | LowConfidence | CW-SRPT V3 | Delta |
 |------|--------|-------------|-----------|-------|
-| 5/s | TPS | 597 | 645 | +8% |
-| 5/s | P90 | 2649ms | 1036ms | -61% |
-| 10/s | TPS | 626 | 994 | +59% |
-| 10/s | P90 | 6930ms | 2429ms | -65% |
-| 20/s | TPS | 653 | 1008 | +54% |
-| 20/s | P90 | 9000ms | 4886ms | -46% |
+| 5/s | TPS | 603 | 659 | +9% |
+| 5/s | P90 | 2511ms | 771ms | -69% |
+| 10/s | TPS | 629 | 1207 | **+92%** |
+| 10/s | P90 | 6875ms | 1213ms | **-82%** |
+| 20/s | TPS | 655 | 1338 | **+104%** |
+| 20/s | P90 | 8970ms | 2983ms | -67% |
 
 ### TP=2
 
-| Rate | Metric | LowConfidence | CW-SRPT V2 | Delta |
+| Rate | Metric | LowConfidence | CW-SRPT V3 | Delta |
 |------|--------|-------------|-----------|-------|
-| 5/s | P90 | 1341ms | 681ms | -49% |
-| 10/s | TPS | 854 | 1234 | +44% |
-| 10/s | P90 | 3501ms | 1125ms | **-68%** |
-| 20/s | TPS | 868 | 1421 | **+64%** |
-| 20/s | P90 | 6170ms | 2671ms | -57% |
+| 5/s | P90 | 1297ms | 514ms | -60% |
+| 10/s | TPS | 857 | 1242 | +45% |
+| 10/s | P90 | 3474ms | 655ms | **-81%** |
+| 20/s | TPS | 872 | 1758 | **+101%** |
+| 20/s | P90 | 6125ms | 1638ms | -73% |
 
 ### TP=4
 
-| Rate | Metric | LowConfidence | CW-SRPT V2 | Delta |
+| Rate | Metric | LowConfidence | CW-SRPT V3 | Delta |
 |------|--------|-------------|-----------|-------|
-| 5/s | P90 | 951ms | 544ms | -43% |
-| 10/s | TPS | 1017 | 1281 | +26% |
-| 10/s | P90 | 2164ms | 754ms | -65% |
-| 20/s | TPS | 1058 | 1619 | +53% |
-| 20/s | P90 | 4548ms | 2115ms | -53% |
+| 5/s | P90 | 979ms | 393ms | -60% |
+| 10/s | TPS | 1024 | 1301 | +27% |
+| 10/s | P90 | 2115ms | 497ms | **-76%** |
+| 20/s | TPS | 1068 | 2057 | **+93%** |
+| 20/s | P90 | 4480ms | 1090ms | -76% |
+
+## Evolution: V1 → V2 → V3
+
+| Version | Key Mechanism | Best P90 | Best TPS |
+|---------|-------------|---------|---------|
+| V1 | Adaptive threshold (per-block loop) | -65% | +59% |
+| V2 | + Vectorized block + early exit | -68% | +64% |
+| **V3** | + Stride controller + early break + frontier admission | **-82%** | **+104%** |
 
 ## License
 
