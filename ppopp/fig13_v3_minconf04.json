@@ -1,0 +1,16 @@
+{
+  "HumanEval": {
+    "readable_rate": 100.0,
+    "valid_python_rate": 90.6
+  },
+  "GSM8K": {
+    "readable_rate": 100.0,
+    "accuracy": 21.9
+  },
+  "MGSM": {
+    "readable_rate": 100.0
+  },
+  "MT-Bench": {
+    "readable_rate": 100.0
+  }
+}
