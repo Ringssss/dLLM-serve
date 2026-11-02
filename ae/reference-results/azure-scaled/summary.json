@@ -1,0 +1,28 @@
+[
+  {
+    "trace": "azure",
+    "method": "SGLang",
+    "duration_s": 60.0,
+    "submitted": 120,
+    "completed": 120,
+    "failed": 0,
+    "p50_s": 1.3057058734741993,
+    "p90_s": 2.7468468959185155,
+    "measurement_completions_per_s": 1.9166666666666667,
+    "drained_requests_per_s": 1.9772336413149076,
+    "max_client_dispatch_lag_s": 0.0022841470299646005
+  },
+  {
+    "trace": "azure",
+    "method": "PAS",
+    "duration_s": 60.0,
+    "submitted": 120,
+    "completed": 120,
+    "failed": 0,
+    "p50_s": 0.7350886437802453,
+    "p90_s": 1.6866011603281432,
+    "measurement_completions_per_s": 1.9666666666666666,
+    "drained_requests_per_s": 1.9942038641957471,
+    "max_client_dispatch_lag_s": 0.0022718211422443346
+  }
+]

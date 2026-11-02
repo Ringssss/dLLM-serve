@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/openai/grade-school-math",
+  "revision": "3101c7d5072418e28b9008a6636bde82a006892c",
+  "split": "test",
+  "samples": 1319,
+  "modification": "Added sequential integer id; preserved question and answer.",
+  "sha256": "2fe421149448f7c4227a01110ba025882fb3d4c70c2cd754a638c3a443d5e176"
+}

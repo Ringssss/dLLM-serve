@@ -80,11 +80,43 @@ class SchedulerDllmMixin:
                 if new_tokens == 0:
                     continue
 
+                if req.dllm_config.algorithm == "CW_SRPT_V3":
+                    bs = req.dllm_config.block_size
+                    assert new_tokens == bs, "PAS writeback must contain a full block"
+                    req.fill_ids[-bs:] = array("q", next_token_ids)
+                    req.dllm_n_masked = next_token_ids.count(req.dllm_config.mask_id)
+                    req.dllm_partial = req.dllm_n_masked > 0
+                    lo = result.logits_output
+                    if lo is not None and hasattr(lo, "dllm_frontier_confidence"):
+                        req.dllm_confidence = lo.dllm_frontier_confidence[idx]
+                    if req.dllm_partial:
+                        # Mask positions are mutable state, never generated tokens.
+                        continue
+                    start = max(0, len(req.origin_input_ids) + len(req.output_ids)
+                                - req.dllm_block_offset)
+                    next_token_ids = next_token_ids[start:]
+                    new_tokens = len(next_token_ids)
+
                 req.fill_ids[-new_tokens:] = array("q", next_token_ids)
                 self.metrics_reporter.num_generated_tokens += new_tokens
 
                 req.output_ids.extend(next_token_ids)
                 req.update_finish_state(new_accepted_len=new_tokens)
+
+                # ── Frontier writeback: update dLLM scheduling state ──
+                if hasattr(req, 'dllm_config') and req.dllm_config is not None:
+                    mask_id = req.dllm_config.mask_id
+                    bsz = req.dllm_config.block_size
+                    block_tokens = req.fill_ids[-bsz:]
+                    n_masked = sum(1 for t in block_tokens if t == mask_id)
+                    req.dllm_n_masked = n_masked
+
+                    # Read algorithm-computed frontier from logits_output
+                    lo = result.logits_output
+                    if lo is not None and hasattr(lo, 'dllm_frontier_confidence'):
+                        conf_list = lo.dllm_frontier_confidence
+                        if idx < len(conf_list):
+                            req.dllm_confidence = conf_list[idx]
 
                 if req.finished():
                     release_kv_cache(req, self.tree_cache)
@@ -304,8 +336,34 @@ class DllmManager:
         return [req for req in self.waiting_queue if req.is_dllm_prefill()]
 
     def get_decode_requests(self) -> List[Req]:
-        """Get all decode requests from waiting queue."""
-        return [req for req in self.waiting_queue if not req.is_dllm_prefill()]
+        """Frontier-aware admission: rank ALL decode requests by denoising
+        frontier score, with aging to prevent starvation.
+
+        Score = remaining_work / (1 + aging_factor * wait_rounds)
+        Lower score = higher priority (closer to completion OR waited long).
+        """
+        decode_reqs = [req for req in self.waiting_queue if not req.is_dllm_prefill()]
+        # AE: preserve the bundled SGLang baseline's FIFO admission policy.
+        if self.dllm_config.algorithm != "CW_SRPT_V3":
+            return decode_reqs
+        aging_factor = 0.15  # controls starvation prevention
+
+        def frontier_score(r):
+            work = getattr(r, 'dllm_remaining_work', float('inf'))
+            wait = getattr(r, 'dllm_wait_rounds', 0)
+            return work / (1.0 + aging_factor * wait)
+
+        decode_reqs.sort(key=frontier_score)
+
+        # Update aging: non-selected requests wait longer
+        n_select = min(len(decode_reqs), self.max_running_reqs)
+        for i, r in enumerate(decode_reqs):
+            if i >= n_select:
+                r.dllm_wait_rounds = getattr(r, 'dllm_wait_rounds', 0) + 1
+            else:
+                r.dllm_wait_rounds = 0  # reset on admission
+
+        return decode_reqs
 
     def add_waiting_reqs(self, reqs: Union[Req, List[Req]]) -> None:
         """Add requests to waiting queue with redundancy check."""

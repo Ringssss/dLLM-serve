@@ -1,0 +1,11 @@
+{
+  "model": "/path/to/LLaDA2.0-mini",
+  "output": "ae/results/quality-32-final",
+  "samples": 32,
+  "tokens": 512,
+  "gpus": "0,1",
+  "tp": 2,
+  "port": 30174,
+  "batch": 8,
+  "start_timeout": 900
+}

@@ -1,0 +1,7 @@
+# Explicit paper operating point; legacy code still needs lifecycle validation.
+target_iters: 8
+min_conf: 0.6
+early_break_ratio: 0.75
+min_unmask: 2
+max_unmask: 16
+stall_boost: 1

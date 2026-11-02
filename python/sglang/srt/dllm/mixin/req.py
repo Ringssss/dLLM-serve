@@ -22,12 +22,32 @@ class ReqDllmMixin:
         self.dllm_phase: Optional[DllmReqPhase] = None
         self.dllm_block_offset = 0
         self.dllm_config = dllm_config
+        self.dllm_partial = False
+
+        # CW-SRPT scheduling state
+        self.dllm_confidence: float = 0.0  # mean confidence of current block
+        self.dllm_n_masked: int = 0        # masked tokens remaining
+        self.dllm_blocks_done: int = 0     # completed blocks count
+        self.dllm_wait_rounds: int = 0     # aging counter for starvation prevention
+        self.dllm_progress_ema: float = 2.0  # EMA of tokens unmasked per iteration
 
         if self.dllm_config is not None:
             if len(self.origin_input_ids) < self.dllm_config.block_size:
                 self.dllm_phase = DllmReqPhase.INCOMING_DECODE
             else:
                 self.dllm_phase = DllmReqPhase.INCOMING_PREFILL
+
+    @property
+    def dllm_remaining_work(self: Req) -> float:
+        """CW-SRPT priority: confidence-weighted remaining work.
+        Lower value = closer to completion = higher priority."""
+        if not hasattr(self, 'dllm_config') or self.dllm_config is None:
+            return float('inf')
+        nm = getattr(self, 'dllm_n_masked', self.dllm_config.block_size)
+        conf = getattr(self, 'dllm_confidence', 0.0)
+        if conf > 0 and nm > 0:
+            return nm * (1.0 - conf)
+        return float(nm)
 
     def is_dllm(self: Req) -> bool:
         return self.dllm_config is not None
@@ -55,6 +75,9 @@ class ReqDllmMixin:
             self.dllm_phase = DllmReqPhase.STAGING_DECODE
 
     def _init_fill_ids_for_dllm(self: Req):
+        if self.dllm_partial:
+            # Resume the same block and rotary positions after an early return.
+            return
         self.dllm_block_offset = (
             0
             if not self.fill_ids
@@ -65,6 +88,9 @@ class ReqDllmMixin:
             + self.output_ids
             + array("q", [self.dllm_config.mask_id] * self.dllm_config.block_size)
         )
+        if self.dllm_config.algorithm == "CW_SRPT_V3":
+            self.dllm_n_masked = self.dllm_config.block_size
+            self.dllm_confidence = 0.0
 
     def _update_block_offset_for_dllm(self):
         prefix_len = len(self.prefix_indices)

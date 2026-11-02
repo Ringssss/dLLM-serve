@@ -277,3 +277,17 @@ sgl-kernel/csrc/**/*_musa/
 *.npz
 artifacts/
 .claude/scheduled_tasks.lock
+
+# Local AE inputs, environments and newly measured results
+.venv-ae/
+ae/data/
+ae/models/
+ae/results/
+__pycache__/
+
+# Public AE inputs and reproducible figures override generic output ignores.
+!ae/datasets/gsm8k.jsonl
+!ae/traces/azure.csv
+!ae/reference-results/**/*.png
+!ae/reference-results/**/*.pdf
+!ae/reference-results/**/*.csv

@@ -1,0 +1,15 @@
+Azure Public Dataset — Azure LLM inference trace 2024
+
+Provided by Microsoft Azure, licensed under Creative Commons Attribution 4.0 International.
+License text and disclaimers: https://creativecommons.org/licenses/by/4.0/legalcode
+Upstream license: https://github.com/Azure/AzurePublicDataset/blob/master/LICENSE
+Dataset description: https://github.com/Azure/AzurePublicDataset/blob/master/AzureLLMInferenceDataset2024.md
+
+Attribution requested by the source:
+Jovan Stojkovic, Chaojie Zhang, Íñigo Goiri, Josep Torrellas, Esha Choukse.
+DynamoLLM: Designing LLM Inference Clusters for Performance and Energy Efficiency.
+HPCA 2025.
+
+Artifact modifications: select the first 30-minute window of 2024-05-12 UTC,
+convert arrival timestamps to relative seconds, and retain/rename input/output
+token-count fields. Runtime replay transformations are documented separately.

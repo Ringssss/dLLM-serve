@@ -2300,6 +2300,18 @@ class Scheduler(
             self.handle_embedding_request(tokenized_req)
 
     def stash_chunked_request(self, req: Req):
+        if getattr(req, "dllm_partial", False):
+            # Recompute only the unfinished block next epoch. Its KV must not
+            # become an immutable prefix. AE runs use the chunk cache.
+            assert self.tree_cache.is_chunk_cache(), "PAS partial return requires --disable-radix-cache"
+            start = req.dllm_block_offset
+            end = len(req.fill_ids)
+            indices = self.req_to_token_pool.req_to_token[req.req_pool_idx]
+            self.token_to_kv_pool_allocator.free(indices[start:end])
+            req.prefix_indices = indices[:start].to(dtype=torch.int64, copy=True)
+            req.kv_committed_len = start
+            req.kv_allocated_len = start
+            return
         maybe_cache_unfinished_req(req, self.tree_cache, chunked=True)
 
     def _build_hisparse_decode_batch(self, reqs):

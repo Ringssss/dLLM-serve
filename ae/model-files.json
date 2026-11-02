@@ -1,0 +1,58 @@
+{
+  "config.json": {
+    "bytes": 1509,
+    "sha256": "6b1db3737e1d173a0326cd0bb740d7ae81515f5ea9468903fa008dadca9cffde"
+  },
+  "configuration_llada2_moe.py": {
+    "bytes": 3159,
+    "sha256": "375a2116aa72aae697fe240486abe1363927f68fa355c744ef4270fa1cec52c3"
+  },
+  "model-00001-of-00007.safetensors": {
+    "bytes": 4999887840,
+    "sha256": "bbb97beb957df1551ee6508f0d0ccec9b79fdc8b4adf988bcd72a8697e87154c"
+  },
+  "model-00002-of-00007.safetensors": {
+    "bytes": 4998880752,
+    "sha256": "ecd1c445bd190a966bd8731a957b32d3416946284999ade15f171d85dffe7305"
+  },
+  "model-00003-of-00007.safetensors": {
+    "bytes": 4998880776,
+    "sha256": "9e2fa25a6f1e5385e27ce07be192158c3fad7b9120402c7152dd958bd50bc33e"
+  },
+  "model-00004-of-00007.safetensors": {
+    "bytes": 4998882960,
+    "sha256": "562f7aaf6f5a5dfd99298e985b46163ed0383d63462d1a6678adcaa4e781074f"
+  },
+  "model-00005-of-00007.safetensors": {
+    "bytes": 4998883176,
+    "sha256": "7fac238eb1f4283efb0733754943e2b5a2c53665be6fa5ea355c1224b03d2e1e"
+  },
+  "model-00006-of-00007.safetensors": {
+    "bytes": 4998883200,
+    "sha256": "f059d81227766cddc9de337aaa448a86163d6145f956009d14f48557af8298be"
+  },
+  "model-00007-of-00007.safetensors": {
+    "bytes": 2518823800,
+    "sha256": "31f4862396580c6e3de277746234b8f120196c0b5741aaea92b46cd4b5ce59df"
+  },
+  "model.safetensors.index.json": {
+    "bytes": 1338853,
+    "sha256": "d0e46f77487b9c8428a41a6bbf6fd6ccf2b1a698843c33e0c4ae686294e4d103"
+  },
+  "modeling_llada2_moe.py": {
+    "bytes": 58249,
+    "sha256": "b9cac6e6f46473ed6aa5785ac57c1931ae8a68499b1149cf9e5c39b12015f47f"
+  },
+  "special_tokens_map.json": {
+    "bytes": 180,
+    "sha256": "2fb357349941f0b4b88669cc2745e70350487dc1b46a5b4dfab8ae1882efdf0b"
+  },
+  "tokenizer.json": {
+    "bytes": 7663359,
+    "sha256": "0a1db22fe3dfb28f9b2be6d87f472af371b50235d7f5366ecac14b52ff8c002b"
+  },
+  "tokenizer_config.json": {
+    "bytes": 4595,
+    "sha256": "053a74db9233c69408762c4e70043cf9811504d1a59220adb0d00c956cf7749c"
+  }
+}

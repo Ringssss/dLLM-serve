@@ -1,0 +1,39 @@
+{
+  "arguments": {
+    "model": "/path/to/LLaDA2.0-mini",
+    "data": "/path/to/dLLM-serve/ae/data/gsm8k.jsonl",
+    "gpus": "0,1",
+    "tp": 2,
+    "batch": 8,
+    "port": 30174,
+    "profile": "quick",
+    "rates": [
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "methods": [
+      "SGLang",
+      "PAS"
+    ],
+    "duration": 30,
+    "warmup": 10,
+    "tokens": 128,
+    "seeds": [
+      42
+    ],
+    "output": "ae/results/quick-128",
+    "start_timeout": 900,
+    "request_timeout": 180
+  },
+  "data_sha256": "2fe421149448f7c4227a01110ba025882fb3d4c70c2cd754a638c3a443d5e176",
+  "git_commit": "8ab89eccba04a259b4783282ad0ad5bf1c2530e5",
+  "git_diff_sha256": "4a0df2d7035f0c29667500c379dd97849f1edeb10295f2a0a3ab7ebced9c926c",
+  "config_sha256": {
+    "pas-paper.yaml": "5a0823db74a7385bdf4e8bf795dc0fc6d8a306ab90ca9ae41cdd269ff2edf8d6",
+    "sglang.yaml": "aed4cde57643f9f053906552b58bda7699758e1df0b6afc4d352dd8783e39cd6"
+  },
+  "gpu": "name, memory.total [MiB], driver_version\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\nNVIDIA A100-SXM4-40GB, 40960 MiB, 595.71.05\n"
+}

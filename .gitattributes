@@ -1,0 +1,4 @@
+# Preserve the exact bytes used by public dataset SHA-256 manifests.
+ae/traces/*.csv -text
+ae/datasets/*.jsonl -text
+ae/reference-results/**/*.csv -text

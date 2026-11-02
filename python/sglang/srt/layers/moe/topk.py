@@ -1064,6 +1064,7 @@ def biased_grouped_topk_gpu(
     if (
         _is_cuda
         and fused_topk_deepseek is not None
+        and torch.cuda.get_device_capability(gating_output.device)[0] >= 9
         and is_power_of_two(num_experts)
         # flashinfer constraints (applied to routed experts only)
         and topk_routed <= 8
