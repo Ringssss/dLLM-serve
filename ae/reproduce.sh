@@ -23,9 +23,9 @@ run_stage() {
   local destination=$2
   case "$stage" in
     trace)
-      # 12 req/s over 300 records: under CUDA graphs a lower rate is
-      # arrival-limited on A100 and hides the difference between methods.
-      "$VENV/bin/python" ae/trace.py --model "$MODEL" --max-requests 300 --rate 12 --batch 32 \
+      # 20 req/s over 300 records: below roughly 12 req/s the replay is
+      # arrival-limited on A100 and the throughput gain disappears entirely.
+      "$VENV/bin/python" ae/trace.py --model "$MODEL" --max-requests 300 --rate 20 --batch 64 \
         --gpus "${AE_GPUS:-0,1}" --tp "${AE_TP:-2}" --port "${AE_PORT:-30174}" --output "$destination" ;;
     sweep)
       "$VENV/bin/python" ae/sweep.py --model "$MODEL" \

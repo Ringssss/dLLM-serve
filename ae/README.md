@@ -152,11 +152,15 @@ bash ae/reproduce.sh trace
 
 `reproduce.sh trace` replays the first 300 Azure records, scales input/output
 lengths by 1/32 and 1/4 (ceil, minimum one token), with caps 2048/256, and
-uniformly scales arrival gaps to mean 12 req/s. The rate matters: at 2 req/s the
-workload is arrival-limited on A100 even with CUDA graphs and the two methods are
-indistinguishable (0.9% apart in the earlier recording), while at 12 req/s PAS
-reaches P90 1.80 s against 4.60 s for SGLang. Always report the rate with a trace
-result. No Azure records in this prefix hit either cap; all transformations and
+uniformly scales arrival gaps to mean 20 req/s.
+
+The rate matters more than any other setting here. At 2 req/s both systems are
+arrival-limited on A100 and their throughput agrees within 1%; at 12 req/s PAS
+shows a 2.25x P90 advantage but no throughput gain; from 20 req/s upward SGLang
+saturates at about 14.5 req/s while PAS reaches about 23.5 req/s. The recorded
+sweep (`ae/reference-results/azure-saturation/`) shows 2.25x/6.79x/3.31x/2.30x P90
+at 12/20/30/45 req/s and a peak throughput gain of +62.6%. Always report the rate
+with a trace result; a single low-rate point is not evidence about throughput. No Azure records in this prefix hit either cap; all transformations and
 constructed token IDs are saved. This is a **scaled trace-derived workload**, not
 an unchanged production workload.
 

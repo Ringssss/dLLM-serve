@@ -142,3 +142,30 @@ not single values, whenever CUDA graphs are on.
 method, plot written). The Azure stage ran at 12 req/s over 300 records: SGLang P90
 4.60 s and PAS 1.80 s, 300/300 each. The quality stage ran on 64 and 200 examples.
 The six lifecycle/measurement tests pass.
+
+## Azure trace at and beyond saturation (2026-11-06)
+
+The earlier Azure recording replayed at 2 req/s, which is far below the offered
+load at which the two methods separate, so it showed almost no throughput gain
+(1.977 vs 1.994 req/s). This sweep replays the same scaled window (first 1,000
+records, input x1/32 capped at 2048, output x1/4 capped at 256; 0 input-cap hits
+and 2 output-cap hits) at four higher rates. Records:
+`ae/reference-results/azure-saturation/`.
+
+| Offered req/s | SGLang P90 s | PAS P90 s | P90 ratio | SGLang req/s | PAS req/s | Throughput gain |
+|---:|---:|---:|---:|---:|---:|---:|
+| 12 | 3.91 | 1.73 | 2.25x | 11.73 | 11.88 | +1.3% |
+| 20 | 19.39 | 2.86 | 6.79x | 14.40 | 19.37 | +34.5% |
+| 30 | 33.77 | 10.19 | 3.31x | 14.44 | 23.12 | +60.1% |
+| 45 | 43.57 | 18.98 | 2.30x | 14.47 | 23.53 | +62.6% |
+All 1,000 records completed at every point for both methods; no failures.
+
+Interpretation. At 12 req/s both systems are arrival-limited and the throughput
+columns agree within 1.3%, which is why a single low-rate replay cannot test the
+throughput claim. SGLang saturates at about 14.5 req/s and PAS at about 23.5
+req/s. The paper reports a 97% Azure throughput gain on this model; the measured
+peak gain here is **+62.6%**, i.e. the direction and the shape of the curve match
+while the magnitude is about two thirds of the paper's number. Two differences
+are relevant: the paper's panel runs on 8×H100 with TP=4 or 8, whereas this is
+2×A100 with TP=2, and this replay uses length-scaled surrogate prompts rather
+than the original Azure text. No claim is made that the absolute gap transfers.
