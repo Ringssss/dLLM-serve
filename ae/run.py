@@ -60,13 +60,15 @@ def _server(a, method, out):
     with socket.socket() as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('127.0.0.1', a.port))
-    config = ROOT / 'ae/configs' / ('sglang.yaml' if method == 'SGLang' else 'pas-paper.yaml')
+    config = ROOT / 'ae/configs' / ('sglang.yaml' if method == 'SGLang' else os.environ.get('AE_PAS_CONFIG', 'pas-final.yaml'))
     cmd = [sys.executable, '-m', 'sglang.launch_server', '--model-path', str(a.model.resolve()),
            '--dllm-algorithm', 'LowConfidence' if method == 'SGLang' else 'CW_SRPT_V3',
            '--dllm-algorithm-config', str(config), '--max-running-requests', str(a.batch),
            '--disable-radix-cache', '--trust-remote-code', '--port', str(a.port),
-           '--tp-size', str(a.tp), '--attention-backend', 'triton', '--disable-cuda-graph',
-           '--mem-fraction-static', '0.8', '--random-seed', '42']
+           '--tp-size', str(a.tp), '--attention-backend', 'triton',
+           '--mem-fraction-static', os.environ.get('AE_MEM_FRACTION', '0.6'), '--random-seed', '42']
+    if os.environ.get('AE_CUDA_GRAPH', '1') != '1':
+        cmd.append('--disable-cuda-graph')
     env = os.environ.copy()
     env['PYTHONPATH'] = str(ROOT / 'python')
     env['CUDA_VISIBLE_DEVICES'] = a.gpus

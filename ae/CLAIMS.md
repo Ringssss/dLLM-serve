@@ -19,3 +19,20 @@ Only SGLang LowConfidence and PAS are executed. Exact H100 timings, additional
 models and other baselines are outside the tested scope. Historical scripts
 with local paths or constructed plot series have been removed from the branch
 tip; the supported reproduction entry point is `ae/reproduce.sh`.
+
+## Updates in this revision
+
+- Figure 11 / Section 8.3 trend: reproduced on 2×A100 with CUDA graphs across
+  four public evaluation sets and seven offered loads (0.5–32 req/s, plus 64 in
+  the reference recording).
+- Figure 14 / quality: a 200-example GSM8K check is now the default. The paper's
+  four-task quality matrix is still **not** reproduced: the bundled HumanEval,
+  MGSM and MT-Bench files are load-sweep inputs, HumanEval is scored by plain
+  exact match rather than pass@1, and MT-Bench needs a judge model that is not
+  shipped.
+- The paper's default confidence floor (0.6) is retained as `pas-paper.yaml` but
+  is **not** the artifact default; it loses measurable GSM8K accuracy at this
+  scale. Numbers in the paper that assume 0.6 are therefore not directly
+  comparable to the artifact's default run.
+- Exact H100 maxima, the 8B/100B panels, Figure 10 and Figure 13 remain outside
+  the public scope.

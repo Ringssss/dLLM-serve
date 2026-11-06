@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 GSM_REVISION = "3101c7d5072418e28b9008a6636bde82a006892c"
@@ -26,9 +27,21 @@ def main():
     a = p.parse_args()
     a.data_dir.mkdir(parents=True, exist_ok=True)
     if not a.local_model:
-        from huggingface_hub import HfApi, snapshot_download
-        a.revision = HfApi().model_info("inclusionAI/LLaDA2.0-mini", revision=a.revision).sha
-        snapshot_download("inclusionAI/LLaDA2.0-mini", revision=a.revision, local_dir=a.model)
+        try:
+            from huggingface_hub import HfApi, snapshot_download
+            a.revision = HfApi().model_info("inclusionAI/LLaDA2.0-mini", revision=a.revision).sha
+            snapshot_download("inclusionAI/LLaDA2.0-mini", revision=a.revision, local_dir=a.model)
+        except Exception as e:
+            # Hugging Face unreachable (e.g. restricted network): fall back to the
+            # ModelScope mirror. Content is still verified against model-files.json.
+            print(f"Hugging Face download failed ({type(e).__name__}); trying ModelScope mirror", flush=True)
+            try:
+                from modelscope import snapshot_download as ms_download
+            except ImportError:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "modelscope"])
+                from modelscope import snapshot_download as ms_download
+            ms_download("inclusionAI/LLaDA2.0-mini", local_dir=str(a.model))
+            a.revision = "modelscope-mirror"
     idx = json.loads((a.model / "model.safetensors.index.json").read_text())
     files = sorted(set(idx["weight_map"].values()) | {
         "config.json", "tokenizer.json", "tokenizer_config.json", "model.safetensors.index.json",

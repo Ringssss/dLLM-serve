@@ -25,10 +25,11 @@ bash ae/reproduce.sh all
 ```
 
 `smoke` is the getting-started test, budgeted at about 30 minutes after downloads
-and installation. `all` runs the quick load sweep, Azure replay and a 32-example
-GSM8K quality diagnostic. Expect about 15–30 minutes on the tested GPU pair,
-plus initial downloads and compilation. Save `git rev-parse HEAD` with your run.
-For a frozen AE submission, use its supplied commit or source archive.
+and installation. `all` runs four stages: a controlled-load sweep, a four-dataset
+load sweep, the Azure replay and a 200-example GSM8K quality check. Budget about
+60–90 minutes of measurement on the tested GPU pair, plus a one-time install and
+checkpoint download. Save `git rev-parse HEAD` with your run. For a frozen AE
+submission, use its supplied commit or source archive.
 
 The entry point creates `.venv-ae`, installs `ae/requirements.lock`, obtains
 `inclusionAI/LLaDA2.0-mini`, verifies model files against `ae/model-files.json`,
@@ -68,6 +69,9 @@ step. No model weights are stored in Git.
   commit `3101c7d5072418e28b9008a6636bde82a006892c`, with sequential IDs added.
   Source identity, SHA-256 and MIT license are included. Preparation verifies
   and copies the file to `ae/data/`; no dataset download is needed.
+- `ae/datasets/{mgsm,humaneval,mt_bench}.jsonl`: 200, 100 and 80 records for the
+  load sweep, with source, licence (CC-BY-4.0, MIT, Apache-2.0), SHA-256 and byte
+  counts in `ae/datasets/EVALSETS.json` and the licence texts alongside.
 - `ae/traces/azure.csv`: 44,102 requests from 2024-05-12 00:00–00:30 UTC in the
   public Azure conversation trace. Columns contain relative arrival time,
   input tokens and output tokens. Source and subset checksums, CC-BY 4.0 notice
@@ -100,16 +104,45 @@ Full mode has a longer request timeout; request failures invalidate the run.
 
 Paired methods receive the same fixed prompt order and seeded Poisson arrivals.
 Performance requests generate exactly 128 tokens with EOS stopping disabled.
-Both methods use TP=2, batch cap 8, Triton attention, disabled radix cache and
-CUDA graphs. PAS uses horizon 8, confidence floor .6, return ratio .75 and
-imported aging coefficient .15. SGLang uses threshold .95 and its baseline
-fallback. Exact commands/configurations are saved. See `CHANGES.md` for source
-provenance and the partial-block lifecycle correction.
+Both methods use TP=2, Triton attention, disabled radix cache, CUDA graphs and
+`--mem-fraction-static 0.6`. Batch cap is 8 for `quick`, 64 for `sweep`; record
+it with your results. PAS uses `ae/configs/pas-final.yaml` (horizon 8, confidence
+floor 0.8, return ratio 0.75, stability gate on, aging 0.15). SGLang uses
+threshold 0.95 and its baseline fallback. The paper's floor of 0.6 is kept as
+`ae/configs/pas-paper.yaml` for direct comparison, but it is not the default: on
+200 GSM8K examples it scores 155/200 against 182/200 for SGLang, whereas the
+default point stays within about one percent (see `VALIDATION.md`).
+
+Environment switches: `AE_CUDA_GRAPH=0` disables CUDA graphs, `AE_MEM_FRACTION`
+changes the static memory fraction, `AE_PAS_CONFIG` selects a different PAS
+config file. Exact commands/configurations are saved with each run. See
+`CHANGES.md` for source provenance and the partial-block lifecycle correction.
 
 Expected trend: P90 rises with offered load; PAS reduces latency and supports
-higher throughput under load. Low-load throughput can be arrival-limited.
-Compare the whole curve rather than requiring an exact speedup at every point.
-Retain unfavorable valid results and repeat seeds when making statistical claims.
+higher throughput under load. With CUDA graphs on, the A100 reference run shows
+PAS P90 1.25–2.9× lower than SGLang up to 8 req/s and 2.4–4.8× around the knee at
+16–32 req/s, with peak throughput 7.15–15.52 req/s against 5.39–7.91. MT-Bench is
+the exception at the two lowest load points, where PAS is 2–11% slower.
+
+Every run must complete all offered requests; a failed request exits non-zero and
+invalidates that run. Compare the whole curve rather than requiring an exact
+speedup at every point, and repeat seeds when making statistical claims.
+
+### Four-dataset load sweep
+
+```bash
+bash ae/reproduce.sh sweep
+```
+
+Runs SGLang and PAS sequentially over `gsm8k`, `mgsm`, `humaneval` and `mt_bench`
+at 0.5, 1, 2, 4, 8, 16 and 32 req/s, then writes `summary.json/csv` and
+`sweep.png/pdf`. Two server starts total. Add `--rates 64` at the end if the GPUs
+have headroom; on the validated pair it measures queueing beyond saturation.
+
+The HumanEval, MGSM and MT-Bench files are **load-sweep inputs only**. They are
+not scored by this stage: `ae/scoring.py` implements exact match for GSM8K/MGSM
+and code extraction for HumanEval, but the quality stage below reports GSM8K
+only, and MT-Bench requires a judge model that is not shipped.
 
 ## Azure replay and length distribution
 
@@ -117,11 +150,15 @@ Retain unfavorable valid results and repeat seeds when making statistical claims
 bash ae/reproduce.sh trace
 ```
 
-Quick replay takes the first 120 Azure records, scales input/output lengths by
-1/32 and 1/4 (ceil, minimum one token), with caps 2048/256, and uniformly scales
-arrival gaps to mean 2 req/s. No Azure records in this tested prefix hit either
-cap. All transformations and constructed token IDs are saved. This is a
-**scaled trace-derived workload**, not an unchanged production workload.
+`reproduce.sh trace` replays the first 300 Azure records, scales input/output
+lengths by 1/32 and 1/4 (ceil, minimum one token), with caps 2048/256, and
+uniformly scales arrival gaps to mean 12 req/s. The rate matters: at 2 req/s the
+workload is arrival-limited on A100 even with CUDA graphs and the two methods are
+indistinguishable (0.9% apart in the earlier recording), while at 12 req/s PAS
+reaches P90 1.80 s against 4.60 s for SGLang. Always report the rate with a trace
+result. No Azure records in this prefix hit either cap; all transformations and
+constructed token IDs are saved. This is a **scaled trace-derived workload**, not
+an unchanged production workload.
 
 Content comes from real GSM8K text repeated/truncated to the exact target token
 count. It is a length surrogate, not the original Azure prompts. The client
@@ -154,9 +191,22 @@ python ae/quality.py --model ae/models/LLaDA2.0-mini \
 
 Uses natural EOS and numeric answer extraction (the `####` answer if present,
 otherwise the last number) on GSM8K. Every response/reference and length
-termination count is retained. The validated 32-example diagnostic scored
-**SGLang 32/32 and PAS 23/32**. Thus the tested configuration exhibits a
-performance–accuracy trade-off; it does not establish quality preservation.
+termination count is retained. The default sample count is 200
+(`AE_QUALITY_SAMPLES`); the earlier 32-example check was too small to separate
+the operating points and is no longer the default.
+
+Reference measurement at the default operating point:
+
+| Method | Correct | Exact match |
+|---|---:|---:|
+| SGLang | 183/200 | 0.915 |
+| PAS (`pas-final.yaml`) | 177/200 | 0.885 |
+
+Repeated 200-example runs gave PAS 177–183 and SGLang 182–183, so the gap is at
+the edge of run-to-run variation. The artifact does not claim exact parity. With
+CUDA graphs enabled, two runs of the same configuration can differ; treat a
+single 200-example score as a range, not a constant (`VALIDATION.md`).
+
 This is not HumanEval pass@1, MGSM exact match or MT-Bench judging.
 
 ## Outputs, metrics and validation
@@ -182,15 +232,16 @@ PYTHONPATH=python python -m pytest -q ae/tests
 
 Six tests cover partial-block resumption/writeback, baseline FIFO isolation,
 drain/failure accounting, deterministic arrival schedules and exact surrogate
-lengths. Inspect server logs on startup failure. Increase `--start-timeout` for
+lengths. `python ae/scoring.py` runs a scoring self-check with no network or GPU. Inspect server logs on startup failure. Increase `--start-timeout` for
 cold compilation; for OOM verify both GPUs are free. Record any changed batch
 cap for both methods. Do not upgrade individual locked dependencies.
 
 ## AE scope and submission
 
-See `CLAIMS.md`, `VALIDATION.md` and `SUBMISSION_DRAFT.md`. The paper's exact
-H100 maxima, 8B/100B panels, component attribution, quality-matched/four-task
-claims and confidential Kimi experiments are not established by this public
-reproduction. Upload the revised paper, this README (plain text/PDF), and a
+See `CLAIMS.md`, `VALIDATION.md`, `AE_FORM_GUIDE.md` and `SUBMISSION_DRAFT.md`.
+The paper's exact H100 maxima, 8B/100B panels, component attribution,
+quality-matched/four-task claims and confidential Kimi experiments are not
+established by this public reproduction. The MT-Bench, HumanEval and MGSM files
+are load-sweep inputs, not a four-task quality matrix. Upload the revised paper, this README (plain text/PDF), and a
 frozen source archive or Git URL. Available badge requests additionally need a
 permanent archival record; the development branch alone is not such a record.

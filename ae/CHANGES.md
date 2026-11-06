@@ -19,3 +19,35 @@ PAS source imported from `main` commit `1da50a96c` (V3 algorithm and request/sch
 This is an updated reproduction implementation. Historical JSON produced by
 older code is not reclassified as evidence from this corrected implementation.
 The full source of every run should be archived together with its results.
+
+## Changes in this revision (2026-11-06)
+
+7. **Operating point changed to `pas-final.yaml`.** The paper's floor
+   (`min_conf` 0.6, `pas-paper.yaml`) loses measurable accuracy on 200 GSM8K
+   examples, so the default entry point now uses 0.8 with the stability gate
+   enabled; `pas-paper.yaml` is kept for direct comparison. See VALIDATION.md.
+8. **CUDA graphs enabled by default.** Earlier runs used `--disable-cuda-graph`,
+   which left each forward dominated by kernel-launch overhead. The entry point
+   now keeps graphs on (`AE_CUDA_GRAPH=0` restores the old behaviour) and sets
+   `--mem-fraction-static 0.6` (`AE_MEM_FRACTION`), because CUDA-graph capture
+   and the fp32 logits buffer need headroom that the previous 0.8 setting did
+   not leave on a 40 GB card.
+9. **Algorithm work in `cw_srpt_v3.py`**: the trailing forward after the
+   denoising loop reuses the last iteration's logits; confidence comes from
+   `logsumexp` instead of a materialised `[batch, block, vocab]` softmax, and is
+   computed in row chunks (`confidence_chunk_rows`) so memory stays bounded at
+   high concurrency; the forced-progress fallback is branch-free so the host
+   does not synchronise mid-loop; `stable_gate`, `saturate_threshold` and
+   `confidence_chunk_rows` are new, default-off-with-opt-in config keys.
+10. **Four public evaluation sets bundled** (`ae/datasets/*.jsonl` with
+    `EVALSETS.json`, per-source licence files and SHA-256) and a new
+    `ae/sweep.py` + `ae/plot_sweep.py` stage that measures the load sweep across
+    all of them in one server start per method.
+11. **Quality stage defaults to 200 GSM8K examples** (`AE_QUALITY_SAMPLES`),
+    because the earlier 32-example check was too small to distinguish the
+    operating points.
+12. **Model acquisition falls back to the ModelScope mirror** when Hugging Face
+    is unreachable; content is still verified against `ae/model-files.json`.
+
+The reference recordings under `ae/reference-results/` were produced before
+items 7-9 and are labelled as such; `sweep-a100-cudagraph/` is the current one.

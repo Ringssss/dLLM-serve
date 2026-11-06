@@ -1,0 +1,16 @@
+[
+  {
+    "method": "SGLang",
+    "samples": 200,
+    "correct": 183,
+    "exact_match": 0.915,
+    "length_terminated": 9
+  },
+  {
+    "method": "PAS",
+    "samples": 200,
+    "correct": 177,
+    "exact_match": 0.885,
+    "length_terminated": 9
+  }
+]

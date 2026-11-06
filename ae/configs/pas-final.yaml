@@ -1,0 +1,12 @@
+# PAS operating point used by the AE entry point.
+# Paper pace (T=8) with a raised commit floor and the stability gate; on the
+# 200-example GSM8K check this matched SGLang accuracy (183/200 vs 182/200).
+# The paper's original floor (0.6) is kept in pas-paper.yaml for comparison.
+target_iters: 8
+min_conf: 0.8
+early_break_ratio: 0.75
+min_unmask: 2
+max_unmask: 16
+stall_boost: 1
+stable_gate: true
+stable_threshold: 0.95

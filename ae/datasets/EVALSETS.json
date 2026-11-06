@@ -1,0 +1,49 @@
+{
+  "note": "Identity is the file SHA-256; upstream refs without a pinned commit may change later. Used only as load-sweep inputs.",
+  "datasets": {
+    "gsm8k": {
+      "file": "gsm8k.jsonl",
+      "source": "https://github.com/openai/grade-school-math",
+      "revision": "3101c7d5072418e28b9008a6636bde82a006892c",
+      "license": "MIT",
+      "license_file": "GSM8K-LICENSE.txt",
+      "selection": "all 1,319 test examples, sequential id added",
+      "sha256": "2fe421149448f7c4227a01110ba025882fb3d4c70c2cd754a638c3a443d5e176",
+      "bytes": 763651,
+      "records": 1319
+    },
+    "mgsm": {
+      "file": "mgsm.jsonl",
+      "source": "https://github.com/google-research/url-nlp/tree/main/mgsm (mgsm_en.tsv)",
+      "revision": "branch main, commit not pinned",
+      "license": "CC-BY-4.0",
+      "license_file": "MGSM-LICENSE.txt",
+      "selection": "first 200 English examples; answer holds the numeric value only, original text kept in answer_raw",
+      "sha256": "40390ddf132a893c68bda01e2653a0b1fbcefd3ced371187f84766564ad57305",
+      "bytes": 71266,
+      "records": 200
+    },
+    "humaneval": {
+      "file": "humaneval.jsonl",
+      "source": "https://github.com/openai/human-eval (data/HumanEval.jsonl.gz)",
+      "revision": "branch master, commit not pinned",
+      "license": "MIT",
+      "license_file": "HUMANEVAL-LICENSE.txt",
+      "selection": "first 100 problems; question is the prompt, answer is canonical_solution",
+      "sha256": "4795a91e4c624154430fb99508bb998c26a917b4785838277a6814463ae09958",
+      "bytes": 115756,
+      "records": 100
+    },
+    "mt_bench": {
+      "file": "mt_bench.jsonl",
+      "source": "https://github.com/lm-sys/FastChat (fastchat/llm_judge/data/mt_bench/question.jsonl)",
+      "revision": "branch main, commit not pinned",
+      "license": "Apache-2.0",
+      "license_file": "MTBENCH-LICENSE.txt",
+      "selection": "first 80 first-turn questions; answer empty (judged, not auto-scored)",
+      "sha256": "5d9a4dad5806bfb7702e0c05210a6dfc2824b4c06116d56bb8408d6ce3c2a63e",
+      "bytes": 32427,
+      "records": 80
+    }
+  }
+}

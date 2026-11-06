@@ -23,19 +23,25 @@ run_stage() {
   local destination=$2
   case "$stage" in
     trace)
-      "$VENV/bin/python" ae/trace.py --model "$MODEL" \
+      # 12 req/s over 300 records: under CUDA graphs a lower rate is
+      # arrival-limited on A100 and hides the difference between methods.
+      "$VENV/bin/python" ae/trace.py --model "$MODEL" --max-requests 300 --rate 12 --batch 32 \
         --gpus "${AE_GPUS:-0,1}" --tp "${AE_TP:-2}" --port "${AE_PORT:-30174}" --output "$destination" ;;
+    sweep)
+      "$VENV/bin/python" ae/sweep.py --model "$MODEL" \
+        --gpus "${AE_GPUS:-0,1}" --tp "${AE_TP:-2}" --port "${AE_PORT:-30174}" --output "$destination"
+      "$VENV/bin/python" ae/plot_sweep.py "$destination" ;;
     quality)
-      "$VENV/bin/python" ae/quality.py --model "$MODEL" --samples 32 \
+      "$VENV/bin/python" ae/quality.py --model "$MODEL" --samples "${AE_QUALITY_SAMPLES:-200}" \
         --gpus "${AE_GPUS:-0,1}" --tp "${AE_TP:-2}" --port "${AE_PORT:-30174}" --output "$destination" ;;
     smoke|quick|full)
       "$VENV/bin/python" ae/run.py --model "$MODEL" --profile "$stage" \
         --gpus "${AE_GPUS:-0,1}" --tp "${AE_TP:-2}" --port "${AE_PORT:-30174}" --output "$destination" ;;
-    *) echo "Unknown profile: $stage (smoke, quick, full, trace, quality, all)" >&2; exit 2 ;;
+    *) echo "Unknown profile: $stage (smoke, quick, full, sweep, trace, quality, all)" >&2; exit 2 ;;
   esac
 }
 if [[ "$PROFILE" == all ]]; then
-  for stage in quick trace quality; do
+  for stage in quick sweep trace quality; do
     run_stage "$stage" "$OUTPUT/$stage"
   done
 else

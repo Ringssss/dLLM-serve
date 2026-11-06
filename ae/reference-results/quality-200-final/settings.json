@@ -1,0 +1,11 @@
+{
+  "model": "/home/zhujianian/models/LLaDA2.0-mini",
+  "output": "ae/results/q200-cg-20261106T115722Z",
+  "samples": 200,
+  "tokens": 512,
+  "gpus": "0,1",
+  "tp": 2,
+  "port": 30403,
+  "batch": 8,
+  "start_timeout": 900
+}
