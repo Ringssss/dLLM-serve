@@ -1,8 +1,9 @@
 # PAS artifact: public end-to-end reproduction
 
-Artifact state: commit `89fb84092` and later on branch `ppopp-artifacts`
-(https://github.com/Ringssss/dLLM-serve). This README describes that state;
-pin the commit you actually evaluated with `git rev-parse HEAD`.
+Artifact state: the commit named in the submission form, on branch
+`ppopp-artifacts` at https://github.com/Ringssss/dLLM-serve. Record the hash you
+actually evaluated with `git rev-parse HEAD`; the branch tip moves, a commit
+does not. Measured reference recordings were produced at or after `89fb84092`.
 
 **What this artifact reproduces:** the end-to-end latency/throughput comparison
 of PAS against the SGLang LowConfidence baseline on LLaDA2.0-mini, across four
