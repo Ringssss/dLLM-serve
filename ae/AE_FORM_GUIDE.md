@@ -90,11 +90,18 @@ Add one line at the top with the commit hash you are submitting.
 
 ## 8. Artifact download URL
 
-> https://github.com/Ringssss/dLLM-serve/tree/5211b67f3cdeb32b4417a1c88b4118a8cba0e4ee
+> https://github.com/Ringssss/dLLM-serve/tree/ppopp27-ae
 
-3. Use a **commit hash**, never the branch name. `ppopp-artifacts` moves; a
-   commit does not. Fill in the hash printed by `git rev-parse HEAD` after the
-   push, and paste the same hash into the README.
+This is an annotated tag pointing at commit
+`301ddcec0c8c1e9544cf60c0042568ff747df698`. Use the tag rather than the branch
+`ppopp-artifacts`, which moves on every push. If the form rejects tag URLs, use
+the commit URL instead:
+`https://github.com/Ringssss/dLLM-serve/tree/301ddcec0c8c1e9544cf60c0042568ff747df698`.
+
+3. Use a **tag or commit hash**, never the branch name. `ppopp-artifacts` moves;
+   a tag does not. The tag `ppopp27-ae` is pushed and resolves to `301ddcec0`.
+   If you re-tag after further changes, update this field and re-verify that
+   `bash ae/reproduce.sh smoke` still passes at the tagged commit.
 4. Do not use URL shorteners or any link that records who clicked — evaluation
    is single-blind.
 5. The repository is public, so no credentials are needed. If it is ever made
