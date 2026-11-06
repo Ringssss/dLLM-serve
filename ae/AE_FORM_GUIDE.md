@@ -90,7 +90,7 @@ Add one line at the top with the commit hash you are submitting.
 
 ## 8. Artifact download URL
 
-> https://github.com/Ringssss/dLLM-serve/tree/&lt;FULL-40-CHAR-COMMIT&gt;
+> https://github.com/Ringssss/dLLM-serve/tree/5211b67f3cdeb32b4417a1c88b4118a8cba0e4ee
 
 3. Use a **commit hash**, never the branch name. `ppopp-artifacts` moves; a
    commit does not. Fill in the hash printed by `git rev-parse HEAD` after the
