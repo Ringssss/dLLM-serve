@@ -1,5 +1,15 @@
 # PAS artifact: public end-to-end reproduction
 
+Artifact state: commit `89fb84092` and later on branch `ppopp-artifacts`
+(https://github.com/Ringssss/dLLM-serve). This README describes that state;
+pin the commit you actually evaluated with `git rev-parse HEAD`.
+
+**What this artifact reproduces:** the end-to-end latency/throughput comparison
+of PAS against the SGLang LowConfidence baseline on LLaDA2.0-mini, across four
+public evaluation sets and an Azure trace replay, on 2×A100. Direction and
+saturation behaviour match the paper; absolute magnitudes are hardware-specific
+and are not claimed to transfer to the paper's H100 setup.
+
 Compare SGLang LowConfidence and PAS (`CW_SRPT_V3`) on the same LLaDA2.0-mini
 BF16 checkpoint, GPU allocation and requests. The public artifact covers
 controlled-load latency/throughput trends and **Azure trace-derived replay**.
