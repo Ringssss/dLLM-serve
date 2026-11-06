@@ -1,0 +1,16 @@
+{
+  "title": "PAS: An Efficient Block-Wise Scheduling Framework for Diffusion LLM Serving (artifact)",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "description": "Artifact for the PPoPP 2027 paper. Reproduces the end-to-end serving comparison of PAS (CW_SRPT_V3) against the SGLang LowConfidence baseline on LLaDA2.0-mini 16B BF16, on 2x A100 40 GB, TP=2. A single entry point provisions a locked environment, downloads the public checkpoint with per-file SHA-256 verification, and runs four stages: a controlled-load sweep, a four-dataset load sweep, an Azure trace replay, and a GSM8K quality check. Public evaluation sets (GSM8K, MGSM, HumanEval prompts, MT-Bench prompts) and a 30-minute Azure trace window are bundled with provenance and licences. The Kimi trace used in the paper is confidential and is not included.",
+  "version": "ppopp27-ae",
+  "keywords": [
+    "dLLM serving",
+    "diffusion language model",
+    "scheduling",
+    "PPoPP",
+    "artifact evaluation"
+  ],
+  "notes": "Corresponds to commit 2e6e32013ceb50c9433089038603b8bfbc65fff0, tag ppopp27-ae."
+}
